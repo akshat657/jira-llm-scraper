@@ -1,0 +1,76 @@
+# Enhanced Configuration for Production Jira Scraper
+# Author: akshat657
+# Date: 2025-11-01
+
+jira:
+  base_url: "https://issues.apache.org/jira"
+  api_version: "2"
+  
+   # Projects to scrape
+  projects:
+    - name: "KAFKA"
+      max_issues: 1000
+    - name: "SPARK"
+      max_issues: 1000
+    - name: "HADOOP"      # ← Changed from AIRFLOW
+      max_issues: 1000    # Hadoop is more reliable
+  
+  # Fields to fetch from Jira
+  fields:
+    - key
+    - summary
+    - description
+    - status
+    - priority
+    - issuetype
+    - created
+    - updated
+    - resolved
+    - assignee
+    - reporter
+    - labels
+    - components
+    - comment
+
+scraping:
+  batch_size: 100               # Issues per API request (max 100)
+  
+  rate_limit:
+    requests_per_minute: 50     # Conservative limit
+    retry_attempts: 3           # Retry failed requests
+    backoff_factor: 2           # Exponential backoff: 1s, 2s, 4s
+  
+  features:
+    fetch_comments: true        # Include comments (slower but richer data)
+    max_comments: 50            # Max comments per issue
+
+checkpointing:
+  enabled: true
+  checkpoint_every: 50          # Save progress every N issues
+  db_path: "data/checkpoints/progress.db"
+
+output:
+  format: "jsonl"
+  directory: "data/output"
+  split_by_project: true        # One file per project
+  compression: false            # Set to true for .jsonl.gz
+
+transformer:
+  enabled: true
+  
+  cleaning:
+    remove_html: true
+    normalize_whitespace: true
+    max_description_length: 10000
+    max_comment_length: 2000
+  
+  tasks:
+    - summarization
+    - classification
+    - qa_generation
+    - code_extraction
+
+logging:
+  level: "INFO"                 # DEBUG, INFO, WARNING, ERROR
+  file: "data/scraper.log"
+  console: true
